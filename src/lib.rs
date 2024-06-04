@@ -6,7 +6,7 @@
 //!
 //! ```rust
 //! use futures::{stream, Stream, StreamExt};
-//! use futures_batch::ChunksTimeoutStreamExt;
+//! use min_batch::MinBatchExt;
 //!
 //! #[derive(Default, Debug, PartialEq, Eq)]
 //! struct BlockOfTxs {
@@ -16,11 +16,11 @@
 //!
 //! #[tokio::main]
 //! async fn main() {
-//!         let mut queue: VecDeque<char> = ('a'..='z').collect();
+//!         let mut block_names: Vec<char> = vec!['a', 'b', 'c', 'd'];
 //!         let min_match_size = 3;
 //!         let batches: Vec<Vec<BlockOfTxs>> = stream::iter(1..=4)
 //!            .map(|x| BlockOfTxs {
-//!                name: queue.pop_front().unwrap(),
+//!                name: block_names[x - 1],
 //!                txs_count: x,
 //!            })
 //!            .min_batch(min_match_size, |block: &BlockOfTxs| block.txs_count)
@@ -76,6 +76,7 @@ doctest!("../README.md");
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures::stream::{Fuse, FusedStream, Stream};
+use futures::StreamExt;
 use pin_project_lite::pin_project;
 
 pin_project! {
@@ -86,7 +87,7 @@ pin_project! {
     F: Fn(&T) -> usize,
 {
         #[pin]
-        stream: S,
+        stream: Fuse<S>,
         current_batch_size: usize,
         items: Vec<S::Item>,
         min_batch_size: usize,
@@ -100,7 +101,7 @@ where
 {
     pub fn new(stream: S, batch_size: usize, count_fn: F) -> Self {
         MinBatch {
-            stream,
+            stream: stream.fuse(),
             current_batch_size: 0,
             items: Vec::with_capacity(batch_size),
             min_batch_size: batch_size,
@@ -164,6 +165,16 @@ pub trait MinBatchExt: Stream {
 
 // Implement the trait for all types that implement Stream
 impl<T: ?Sized> MinBatchExt for T where T: Stream {}
+
+impl<S: FusedStream, F, T> FusedStream for MinBatch<S, F, T>
+where
+    S: Stream<Item = T>,
+    F: Fn(&T) -> usize,
+{
+    fn is_terminated(&self) -> bool {
+        self.stream.is_terminated() & self.items.is_empty()
+    }
+}
 
 #[cfg(test)]
 mod tests {
