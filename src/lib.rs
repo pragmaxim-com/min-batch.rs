@@ -1,3 +1,78 @@
+//! An adapter that turns elements into batches of minimal element count. Needed for efficient work parallelization.
+//!
+//! ## Usage
+//!
+//! Either as a standalone stream operator or directly as a combinator:
+//!
+//! ```rust
+//! use futures::{stream, Stream, StreamExt};
+//! use futures_batch::ChunksTimeoutStreamExt;
+//!
+//! #[derive(Default, Debug, PartialEq, Eq)]
+//! struct BlockOfTxs {
+//!     name: char,
+//!     txs_count: usize,
+//! }
+//!
+//! #[tokio::main]
+//! async fn main() {
+//!         let mut queue: VecDeque<char> = ('a'..='z').collect();
+//!         let min_match_size = 3;
+//!         let batches: Vec<Vec<BlockOfTxs>> = tokio_stream::iter(1..=4)
+//!            .map(|x| BlockOfTxs {
+//!                name: queue.pop_front().unwrap(),
+//!                txs_count: x,
+//!            })
+//!            .min_batch(min_match_size, |block: &BlockOfTxs| block.txs_count)
+//!            .collect()
+//!            .await;
+//!
+//!            // Verify the batches
+//!            assert_eq!(batches.len(), 3);
+//!           
+//!            // collect first two Blocks of Transactions until the total count of transactions is >= 3
+//!            assert_eq!(
+//!                batches[0],
+//!                vec![
+//!                    BlockOfTxs {
+//!                        name: 'a',
+//!                        txs_count: 1
+//!                    },
+//!                    BlockOfTxs {
+//!                        name: 'b',
+//!                        txs_count: 2
+//!                    }
+//!                ],
+//!            );
+//!           
+//!            // the third Block has already 3 transactions so lets move to the next one
+//!            assert_eq!(
+//!                batches[1],
+//!                vec![BlockOfTxs {
+//!                    name: 'c',
+//!                    txs_count: 3
+//!                }],
+//!            );
+//!            assert_eq!(
+//!                batches[2],
+//!                vec![BlockOfTxs {
+//!                    name: 'd',
+//!                    txs_count: 4
+//!                }],
+//!            );
+//! }
+//! ```
+//!
+//! The above code helps parallelizing work so that spawned tasks are all processing at least `min_batch_size` of elements.
+//! Thus avoiding the context switching overhead of cpu intensive workloads.
+
+#[cfg(test)]
+#[macro_use]
+extern crate doc_comment;
+
+#[cfg(test)]
+doctest!("../README.md");
+
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use pin_project_lite::pin_project;
@@ -117,17 +192,36 @@ mod tests {
         assert_eq!(batches[2], vec![vec!['g', 'h', 'i', 'j']]);
     }
 
-    #[derive(Default, Debug, PartialEq, Eq, Clone, Copy)]
+    #[derive(Default, Debug, PartialEq, Eq)]
     struct BlockOfTxs {
         name: char,
         txs_count: usize,
     }
 
     #[tokio::test]
+    async fn test_batch_stream_short() {
+        let mut queue: VecDeque<char> = ('a'..='z').collect();
+
+        let batches: Vec<Vec<Vec<char>>> = tokio_stream::once(1)
+            .map(|x| {
+                (0..x)
+                    .map(|_| queue.pop_front().unwrap())
+                    .collect::<Vec<char>>()
+            })
+            .min_batch(3, |xs: &Vec<char>| xs.len())
+            .collect()
+            .await;
+
+        // Verify the batches
+        assert_eq!(batches.len(), 1);
+        assert_eq!(batches[0], vec![vec!['a']]);
+    }
+
+    #[tokio::test]
     async fn test_batch_stream_of_blocks() {
         let mut queue: VecDeque<char> = ('a'..='z').collect();
 
-        let batches: Vec<Vec<BlockOfTxs>> = tokio_stream::iter(1..=5)
+        let batches: Vec<Vec<BlockOfTxs>> = tokio_stream::iter(1..=4)
             .map(|x| BlockOfTxs {
                 name: queue.pop_front().unwrap(),
                 txs_count: x,
@@ -137,7 +231,7 @@ mod tests {
             .await;
 
         // Verify the batches
-        assert_eq!(batches.len(), 4);
+        assert_eq!(batches.len(), 3);
         // collect first two Blocks of Transactions until the total count of transactions is >= 3
         assert_eq!(
             batches[0],

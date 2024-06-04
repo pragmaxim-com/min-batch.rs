@@ -1,6 +1,6 @@
 [package]
 authors = ["Jakub Liska <pragmaxim@gmail.com>"]
-description = "An adaptor that turns elements into batches of minimal element count. Needed for efficient work parallelization."
+description = "An adapter that turns elements into batches of minimal element count. Needed for efficient work parallelization."
 license = "MIT OR Apache-2.0"
 name = "min-batch"
 version = "0.1.0"
@@ -19,6 +19,9 @@ pin-project-lite = "0.2"
 [dev-dependencies]
 tokio = { version = "1.38.0", features = ["full"] }
 criterion = { version = "0.5.1", features = ["html_reports", "async_tokio"] }
+
+[dev-dependencies.doc-comment]
+version = "0.3"
 
 [[bench]]
 name = "min_batch_benchmark"
