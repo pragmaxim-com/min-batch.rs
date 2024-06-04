@@ -15,24 +15,27 @@ Either as a standalone stream operator or directly as a combinator.
 ```rust
 use futures::{stream, StreamExt};
 use min_batch::MinBatchExt;
+
 #[derive(Debug, PartialEq, Eq)]
 struct BlockOfTxs {
     name: char,
     txs_count: usize,
 }
+
 #[tokio::main]
 async fn main() {
    let mut block_names: Vec<char> = vec!['a', 'b', 'c', 'd'];
    let min_match_size = 3;
-   let batches: Vec<Vec<BlockOfTxs>> = stream::iter(1..=4)
-   .map(|x| BlockOfTxs {
-       name: block_names[x - 1],
-       txs_count: x,
-   })
-   .min_batch(min_match_size, |block: &BlockOfTxs| block.txs_count)
-   .collect()
-   .await;
-   // Verify the batches
+   let batches: Vec<Vec<BlockOfTxs>> = 
+       stream::iter(1..=4)
+           .map(|x| BlockOfTxs {
+               name: block_names[x - 1],
+               txs_count: x,
+           })
+           .min_batch(min_match_size, |block: &BlockOfTxs| block.txs_count)
+           .collect()
+           .await;
+   
    assert_eq!(batches.len(), 3);
    
    // collect first two Blocks of Transactions until the total count of transactions is >= 3
