@@ -1,14 +1,16 @@
-//! An adapter that turns elements into batches of minimal element count. Needed for efficient work parallelization.
+//! An adapter that turns elements into a batch of minimal element count. Needed for efficient work
+//! parallelization so that following tasks running in parallel are all processing at least
+//! `min_batch_size` of elements to avoid context switching overhead of cpu intensive workloads.
 //!
 //! ## Usage
 //!
 //! Either as a standalone stream operator or directly as a combinator:
 //!
 //! ```rust
-//! use futures::{stream, Stream, StreamExt};
+//! use futures::{stream, StreamExt};
 //! use min_batch::MinBatchExt;
 //!
-//! #[derive(Default, Debug, PartialEq, Eq)]
+//! #[derive(Debug, PartialEq, Eq)]
 //! struct BlockOfTxs {
 //!     name: char,
 //!     txs_count: usize,
@@ -63,8 +65,6 @@
 //! }
 //! ```
 //!
-//! The above code helps parallelizing work so that spawned tasks are all processing at least `min_batch_size` of elements.
-//! Thus avoiding the context switching overhead of cpu intensive workloads.
 
 #[cfg(test)]
 #[macro_use]
@@ -203,7 +203,7 @@ mod tests {
         assert_eq!(batches[2], vec![vec!['g', 'h', 'i', 'j']]);
     }
 
-    #[derive(Default, Debug, PartialEq, Eq)]
+    #[derive(Debug, PartialEq, Eq)]
     struct BlockOfTxs {
         name: char,
         txs_count: usize,

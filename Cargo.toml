@@ -1,6 +1,6 @@
 [package]
 authors = ["Jakub Liska <pragmaxim@gmail.com>"]
-description = "An adapter that turns elements into batches of minimal element count. Needed for efficient work parallelization."
+description = "An adapter that turns elements into a batch of minimal element count. Needed for efficient work parallelization."
 license = "MIT OR Apache-2.0"
 name = "min-batch"
 version = "0.1.0"
