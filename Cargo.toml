@@ -1,0 +1,17 @@
+[package]
+authors = ["Jakub Liska <pragmaxim@gmail.com>"]
+description = "An adaptor that turns elements into batches of minimal element count. Needed for efficient work parallelization."
+license = "MIT OR Apache-2.0"
+name = "min-batch"
+version = "0.1.0"
+edition = "2021"
+repository = "https://github.com/pragmaxim/min-batch"
+
+[lib]
+bench = false
+
+[dependencies]
+futures = { version = "0.3", features = ["async-await"] }
+tokio = { version = "1.38.0", features = ["full"] }
+tokio-stream = "0.1.15"
+pin-project-lite = "0.2"
