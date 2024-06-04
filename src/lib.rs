@@ -23,7 +23,7 @@ where
     S: Stream<Item = T>,
     F: Fn(&T) -> usize,
 {
-    pub(super) fn new(stream: S, batch_size: usize, count_fn: F) -> Self {
+    pub fn new(stream: S, batch_size: usize, count_fn: F) -> Self {
         MinBatch {
             stream,
             current_batch_size: 0,
