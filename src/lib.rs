@@ -18,7 +18,7 @@
 //! async fn main() {
 //!         let mut queue: VecDeque<char> = ('a'..='z').collect();
 //!         let min_match_size = 3;
-//!         let batches: Vec<Vec<BlockOfTxs>> = tokio_stream::iter(1..=4)
+//!         let batches: Vec<Vec<BlockOfTxs>> = stream::iter(1..=4)
 //!            .map(|x| BlockOfTxs {
 //!                name: queue.pop_front().unwrap(),
 //!                txs_count: x,
@@ -75,8 +75,8 @@ doctest!("../README.md");
 
 use core::pin::Pin;
 use core::task::{Context, Poll};
+use futures::stream::{Fuse, FusedStream, Stream};
 use pin_project_lite::pin_project;
-use tokio_stream::Stream;
 
 pin_project! {
     #[must_use = "streams do nothing unless polled"]
@@ -168,14 +168,14 @@ impl<T: ?Sized> MinBatchExt for T where T: Stream {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use futures::StreamExt;
+    use futures::{stream, StreamExt};
     use std::collections::VecDeque;
 
     #[tokio::test]
     async fn test_batch_stream_of_vectors() {
         let mut queue: VecDeque<char> = ('a'..='z').collect();
 
-        let batches: Vec<Vec<Vec<char>>> = tokio_stream::iter(1..=5)
+        let batches: Vec<Vec<Vec<char>>> = stream::iter(1..=5)
             .map(|x| {
                 (0..x)
                     .map(|_| queue.pop_front().unwrap())
@@ -202,7 +202,7 @@ mod tests {
     async fn test_batch_stream_short() {
         let mut queue: VecDeque<char> = ('a'..='z').collect();
 
-        let batches: Vec<Vec<Vec<char>>> = tokio_stream::once(1)
+        let batches: Vec<Vec<Vec<char>>> = stream::once(async { 1 })
             .map(|x| {
                 (0..x)
                     .map(|_| queue.pop_front().unwrap())
