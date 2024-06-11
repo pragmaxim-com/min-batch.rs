@@ -130,6 +130,7 @@ where
                     me.items.push(item);
                     *me.current_batch_size += new_count;
                     if me.current_batch_size >= me.min_batch_size {
+                        *me.current_batch_size = 0;
                         return Poll::Ready(Some(std::mem::take(me.items)));
                     }
                 }
