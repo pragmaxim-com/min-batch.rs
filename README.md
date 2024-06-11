@@ -4,9 +4,12 @@
 [![Cargo](https://img.shields.io/crates/v/futures-batch.svg)](https://crates.io/crates/futures-batch)
 [![Documentation](https://docs.rs/futures-batch/badge.svg)](https://docs.rs/futures-batch)
 
-An adapter that turns elements into a batch of minimal element count. Needed for efficient work
-parallelization so that following tasks running in parallel are all processing at least 
-`min_batch_size` of elements to avoid context switching overhead of cpu intensive workloads.
+An adapter that turns elements into a batch and its minimal size is computed by given closure. 
+It is needed for efficient work parallelization so that following tasks running in parallel 
+are all processing a batch of at least `min_batch_size` to avoid context switching overhead
+of cpu intensive workloads. Otherwise we usually need to introduce some kind of publish/subscribe
+model with dedicated long-running thread for each consumer and broadcasting messages to them
+and establishing back-pressure through [barrier](https://docs.rs/tokio/latest/tokio/sync/struct.Barrier.html).
 
 ## Usage
 
