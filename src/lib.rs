@@ -235,18 +235,18 @@ mod tests {
     async fn test_batch_stream_of_blocks() {
         let mut queue: VecDeque<char> = ('a'..='z').collect();
 
-        let batches: Vec<Vec<BlockOfTxs>> = tokio_stream::iter(1..=4)
+        let batches: Vec<Vec<BlockOfTxs>> = tokio_stream::iter(1..=7)
             .map(|x| BlockOfTxs {
                 name: queue.pop_front().unwrap(),
-                txs_count: x,
+                txs_count: if x >= 4 { 1 } else { x },
             })
             .min_batch(3, |block: &BlockOfTxs| block.txs_count)
             .collect()
             .await;
 
         // Verify the batches
-        assert_eq!(batches.len(), 3);
-        // collect first two Blocks of Transactions until the total count of transactions is >= 3
+        assert_eq!(batches.len(), 4);
+        // collect first Blocks of Transactions until the total count of transactions is >= 3
         assert_eq!(
             batches[0],
             vec![
@@ -268,11 +268,30 @@ mod tests {
                 txs_count: 3
             }],
         );
+        // collect 3 more blocks with a single transaction
         assert_eq!(
             batches[2],
+            vec![
+                BlockOfTxs {
+                    name: 'd',
+                    txs_count: 1
+                },
+                BlockOfTxs {
+                    name: 'e',
+                    txs_count: 1
+                },
+                BlockOfTxs {
+                    name: 'f',
+                    txs_count: 1
+                }
+            ],
+        );
+        // and so on
+        assert_eq!(
+            batches[3],
             vec![BlockOfTxs {
-                name: 'd',
-                txs_count: 4
+                name: 'g',
+                txs_count: 1
             }],
         );
     }
