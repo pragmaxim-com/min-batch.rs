@@ -1,15 +1,16 @@
 ## min-batch
 
 ![Build status](https://github.com/pragmaxim/min-batch/workflows/Rust/badge.svg)
-[![Cargo](https://img.shields.io/crates/v/futures-batch.svg)](https://crates.io/crates/futures-batch)
-[![Documentation](https://docs.rs/futures-batch/badge.svg)](https://docs.rs/futures-batch)
+[![Cargo](https://img.shields.io/crates/v/min-batch.svg)](https://crates.io/crates/min-batch)
+[![Documentation](https://docs.rs/min-batch/badge.svg)](https://docs.rs/min-batch)
 
-An adapter that turns elements into a batch and its minimal size is computed by given closure. 
+An adapter that turns elements into a batch and its size is computed by given closure. 
 It is needed for efficient work parallelization so that following tasks running in parallel 
-are all processing a batch of at least `min_batch_size` to avoid context switching overhead
-of cpu intensive workloads. Otherwise we usually need to introduce some kind of publish/subscribe
-model with dedicated long-running thread for each consumer, broadcasting messages to them
-and establishing back-pressure through [barrier](https://docs.rs/tokio/latest/tokio/sync/struct.Barrier.html).
+are all processing a batch of at least `min_batch_size` but optimally to `optimal_batch_size` 
+to avoid context switching overhead of cpu intensive workloads. Otherwise we usually need to
+introduce some kind of publish/subscribe model with dedicated long-running thread for each
+consumer, broadcasting messages to them and establishing back-pressure through
+[barrier](https://docs.rs/tokio/latest/tokio/sync/struct.Barrier.html).
 
 ## Usage
 
@@ -28,14 +29,15 @@ struct BlockOfTxs {
 #[tokio::main]
 async fn main() {
    let mut block_names: Vec<char> = vec!['a', 'b', 'c', 'd'];
-   let min_match_size = 3;
+   let min_batch_size = 2;
+   let optimal_batch_size = 3;
    let batches: Vec<Vec<BlockOfTxs>> = 
        stream::iter(1..=4)
            .map(|x| BlockOfTxs {
                name: block_names[x - 1],
                txs_count: x,
            })
-           .min_batch(min_match_size, |block: &BlockOfTxs| block.txs_count)
+           .min_batch(min_batch_size, optimal_batch_size, |block: &BlockOfTxs| block.txs_count)
            .collect()
            .await;
    
