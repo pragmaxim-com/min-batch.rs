@@ -121,7 +121,9 @@ where
         let mut me = self.as_mut().project();
         loop {
             match me.stream.as_mut().poll_next(cx) {
-                Poll::Pending => break,
+                Poll::Pending => {
+                    return Poll::Pending;
+                }
                 Poll::Ready(Some(item)) => {
                     if me.items.is_empty() {
                         me.items.reserve(*me.min_batch_size);
@@ -141,18 +143,10 @@ where
                         *me.current_batch_size = 0;
                         Some(std::mem::take(me.items))
                     };
-
                     return Poll::Ready(last);
                 }
             }
         }
-
-        if !me.items.is_empty() {
-            *me.current_batch_size = 0;
-            return Poll::Ready(Some(std::mem::take(me.items)));
-        }
-
-        Poll::Pending
     }
 }
 
