@@ -138,6 +138,7 @@ where
                     let last = if me.items.is_empty() {
                         None
                     } else {
+                        *me.current_batch_size = 0;
                         Some(std::mem::take(me.items))
                     };
 
@@ -147,6 +148,7 @@ where
         }
 
         if !me.items.is_empty() {
+            *me.current_batch_size = 0;
             return Poll::Ready(Some(std::mem::take(me.items)));
         }
 
