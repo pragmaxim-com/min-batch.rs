@@ -19,14 +19,13 @@
 //! #[tokio::main]
 //! async fn main() {
 //!         let mut block_names: Vec<char> = vec!['a', 'b', 'c', 'd'];
-//!         let min_batch_size = 2;
-//!         let optimal_batch_size = 3;
+//!         let min_batch_size = 3;
 //!         let batches: Vec<Vec<BlockOfTxs>> = stream::iter(1..=4)
 //!            .map(|x| BlockOfTxs {
 //!                name: block_names[x - 1],
 //!                txs_count: x,
 //!            })
-//!            .min_batch(min_batch_size, optimal_batch_size, |block: &BlockOfTxs| block.txs_count)
+//!            .min_batch(min_batch_size, |block: &BlockOfTxs| block.txs_count)
 //!            .collect()
 //!            .await;
 //!
@@ -76,6 +75,7 @@ doctest!("../README.md");
 
 use core::pin::Pin;
 use core::task::{Context, Poll};
+use futures::ready;
 use futures::stream::{Fuse, FusedStream, Stream};
 use futures::StreamExt;
 use pin_project_lite::pin_project;
@@ -92,7 +92,6 @@ pin_project! {
         current_batch_size: usize,
         items: Vec<S::Item>,
         min_batch_size: usize,
-        optimal_batch_size: usize,
         count_fn: F,
     }
 }
@@ -101,13 +100,12 @@ where
     S: Stream<Item = T>,
     F: Fn(&T) -> usize,
 {
-    pub fn new(stream: S, min_batch_size: usize, optimal_batch_size: usize, count_fn: F) -> Self {
+    pub fn new(stream: S, min_batch_size: usize, count_fn: F) -> Self {
         MinBatch {
             stream: stream.fuse(),
             current_batch_size: 0,
             items: Vec::with_capacity(min_batch_size),
             min_batch_size,
-            optimal_batch_size,
             count_fn,
         }
     }
@@ -123,28 +121,20 @@ where
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let mut me = self.as_mut().project();
         loop {
-            match me.stream.as_mut().poll_next(cx) {
-                Poll::Pending => {
-                    if !me.items.is_empty() && *me.current_batch_size >= *me.min_batch_size {
-                        *me.current_batch_size = 0;
-                        return Poll::Ready(Some(std::mem::take(me.items)));
-                    } else {
-                        return Poll::Pending;
-                    }
-                }
-                Poll::Ready(Some(item)) => {
+            match ready!(me.stream.as_mut().poll_next(cx)) {
+                Some(item) => {
                     if me.items.is_empty() {
                         me.items.reserve(*me.min_batch_size);
                     }
                     let new_count = (me.count_fn)(&item);
                     me.items.push(item);
                     *me.current_batch_size += new_count;
-                    if me.current_batch_size >= me.optimal_batch_size {
+                    if me.current_batch_size >= me.min_batch_size {
                         *me.current_batch_size = 0;
                         return Poll::Ready(Some(std::mem::take(me.items)));
                     }
                 }
-                Poll::Ready(None) => {
+                None => {
                     let last = if me.items.is_empty() {
                         None
                     } else {
@@ -159,17 +149,12 @@ where
 }
 
 pub trait MinBatchExt: Stream {
-    fn min_batch<F>(
-        self,
-        min_batch_size: usize,
-        optimal_batch_size: usize,
-        count_fn: F,
-    ) -> MinBatch<Self, F, Self::Item>
+    fn min_batch<F>(self, min_batch_size: usize, count_fn: F) -> MinBatch<Self, F, Self::Item>
     where
         Self: Sized,
         F: Fn(&Self::Item) -> usize,
     {
-        MinBatch::new(self, min_batch_size, optimal_batch_size, count_fn)
+        MinBatch::new(self, min_batch_size, count_fn)
     }
 }
 
@@ -202,7 +187,7 @@ mod tests {
                     .map(|_| queue.pop_front().unwrap())
                     .collect::<Vec<char>>()
             })
-            .min_batch(3, 3, |xs: &Vec<char>| xs.len())
+            .min_batch(3, |xs: &Vec<char>| xs.len())
             .collect()
             .await;
 
@@ -229,7 +214,7 @@ mod tests {
                     .map(|_| queue.pop_front().unwrap())
                     .collect::<Vec<char>>()
             })
-            .min_batch(3, 3, |xs: &Vec<char>| xs.len())
+            .min_batch(3, |xs: &Vec<char>| xs.len())
             .collect()
             .await;
 
@@ -247,7 +232,7 @@ mod tests {
                 name: queue.pop_front().unwrap(),
                 txs_count: if x >= 4 { 1 } else { x },
             })
-            .min_batch(3, 3, |block: &BlockOfTxs| block.txs_count)
+            .min_batch(3, |block: &BlockOfTxs| block.txs_count)
             .collect()
             .await;
 

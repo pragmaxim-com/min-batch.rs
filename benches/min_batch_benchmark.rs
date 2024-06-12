@@ -4,7 +4,7 @@ use min_batch::MinBatchExt;
 use tokio::runtime::Runtime;
 
 async fn batch(stream: impl Stream<Item = i32>) {
-    let _ = stream.min_batch(50, 1000, |i| *i as usize);
+    let _ = stream.min_batch(1000, |i| *i as usize);
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
