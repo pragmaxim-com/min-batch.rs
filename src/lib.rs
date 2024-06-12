@@ -118,8 +118,8 @@ where
 {
     type Item = Vec<S::Item>;
 
-    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        let mut me = self.as_mut().project();
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        let mut me = self.project();
         loop {
             match ready!(me.stream.as_mut().poll_next(cx)) {
                 Some(item) => {
