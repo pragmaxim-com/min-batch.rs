@@ -5,7 +5,7 @@ license = "MIT OR Apache-2.0"
 name = "min-batch"
 version = "0.1.0"
 edition = "2021"
-repository = "https://github.com/pragmaxim/min-batch"
+repository = "https://github.com/pragmaxim-com/min-batch.rs"
 
 [lib]
 bench = false

@@ -1,6 +1,6 @@
 ## min-batch
 
-![Build status](https://github.com/pragmaxim/min-batch/workflows/Rust/badge.svg)
+![Build status](https://github.com/pragmaxim-com/min-batch.rs/workflows/Rust/badge.svg)
 [![Cargo](https://img.shields.io/crates/v/min-batch.svg)](https://crates.io/crates/min-batch)
 [![Documentation](https://docs.rs/min-batch/badge.svg)](https://docs.rs/min-batch)
 
