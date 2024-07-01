@@ -198,6 +198,32 @@ mod tests {
         assert_eq!(batches[2], vec![vec!['g', 'h', 'i', 'j']]);
     }
 
+    #[tokio::test]
+    async fn test_min_size_of_vectors() {
+        let batches: Vec<Vec<Vec<char>>> = stream::iter(1..=10_005)
+            .map(|_| (0..10).map(|_| 'a').collect::<Vec<char>>())
+            .min_batch(100_000, |xs: &Vec<char>| xs.len())
+            .collect()
+            .await;
+
+        // Verify the batches
+        assert!(
+            batches.len() == 2,
+            "Expected batches length should not be {}",
+            batches.len()
+        );
+        assert!(
+            batches[0].len() == 10_000,
+            "Expected betch length should not be {}",
+            batches[0].len()
+        );
+        assert!(
+            batches[1].len() == 5,
+            "Expected betch length should not be {}",
+            batches[1].len()
+        );
+    }
+
     #[derive(Debug, PartialEq, Eq)]
     struct BlockOfTxs {
         name: char,
