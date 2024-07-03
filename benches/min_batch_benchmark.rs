@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use futures::stream::{self, Stream};
-use min_batch::MinBatchExt;
+use min_batch::ext::MinBatchExt;
 use tokio::runtime::Runtime;
 
 async fn batch(stream: impl Stream<Item = i32>) {
